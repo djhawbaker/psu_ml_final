@@ -14,15 +14,15 @@ from sklearn.metrics import confusion_matrix
 """
 
 if __name__ == "__main__":
-    # Training data generator with 15% validation set (~900 imgs)
+
     traingen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1./255, rotation_range=25, validation_split=.15)
 
     # Create iterators for train, validation and test set
     trainer = traingen.flow_from_directory('./data/train', class_mode="binary", classes=['COVID19', 'NORMAL'],
-                                           shuffle=False, batch_size=32, target_size=(400, 400), subset="training")
+                                           shuffle=False, batch_size=8, target_size=(299, 299), subset="training")
 
     validator = traingen.flow_from_directory('./data/train', class_mode="binary", classes=['COVID19', 'NORMAL'],
-                                             shuffle=False, batch_size=32, target_size=(400, 400), subset="validation")
+                                             shuffle=False, batch_size=8, target_size=(299, 299), subset="validation")
 
 
     # Load and preprocess images
@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     """
     # Setup model
-    pre_model = InceptionResNetV2(weights="imagenet", include_top=False, input_shape=(400, 400, 3))
+    pre_model = InceptionResNetV2(weights="imagenet", include_top=False, input_shape=(299, 299, 3))
     #class_names = trainer.class_names
     labels = np.concatenate([y for x, y in validator], axis=0)
 
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     model.add(layers.Dense(256, activation='relu'))
     model.add(layers.Dense(1, activation='sigmoid'))
     pre_model.trainable = False
-    model.compile()
+
 
     # Train
     opt = tf.keras.optimizers.Adam(learning_rate=0.01)
