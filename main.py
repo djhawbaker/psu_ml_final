@@ -64,6 +64,18 @@ class ModelMaker:
         self.conf_matrix = None
         self.metrics_functions = None
 
+    def reset_member_variables(self):
+        """ Resets the member variables so a new model can be run without issues
+
+        :return:
+        """
+        self.name = None
+        self.model = None
+        self.predictions = None
+        self.callbacks = None
+        self.conf_matrix = None
+        self.metrics_functions = None
+
     def create_model(self, pre_model):
         """ Transfers the input model and creates a new classifier
 
@@ -88,7 +100,7 @@ class ModelMaker:
         :return: None
         """
         self.callbacks = [
-            tf.keras.callbacks.EarlyStopping(monitor='loss')
+            tf.keras.callbacks.EarlyStopping(monitor='loss', patience=2)
         ]
 
     def create_metric_functions(self):
@@ -109,7 +121,8 @@ class ModelMaker:
         :return: None
         """
         self.epochs = epochs
-        history = self.model.fit(self.trainer, validation_data=self.validator, epochs=epochs, shuffle=False)#, callbacks=self.callbacks)
+        history = self.model.fit(self.trainer, validation_data=self.validator, epochs=epochs, shuffle=False,
+                                 callbacks=self.callbacks)
         print(f"Model 1: InceptionResNetV2: {history}")
 
         """
@@ -268,6 +281,7 @@ class ModelMaker:
         :param num_epochs: How many epochs to run during training
         :return: None
         """
+        self.reset_member_variables()
         self.name = model_name
         self.create_metric_functions()
         self.create_model(model)
@@ -276,40 +290,32 @@ class ModelMaker:
 
 
 if __name__ == "__main__":
-    epochs = 10
-    image_size = (299, 299)
+    epochs = 50
+    image_size = (400, 400)
+
+    mm = ModelMaker(image_size)
 
     # Setup model 1: InceptionResNetV2
     pre_model = InceptionResNetV2(weights="imagenet", include_top=False, input_shape=image_size + (3,))
     pre_model_name = "InceptionResNetV2"
-
-    mm = ModelMaker(image_size)
     mm.run(pre_model, pre_model_name, epochs)
 
     # Setup model 2: VGG16
     pre_model = VGG16(weights="imagenet", include_top=False, input_shape=image_size + (3,))
     pre_model_name = "VGG16"
-
-    mm = ModelMaker(image_size)
     mm.run(pre_model, pre_model_name, epochs)
 
     # Setup model 3: MobileNetV2
     pre_model = MobileNetV2(weights="imagenet", include_top=False, input_shape=image_size + (3,))
     pre_model_name = "MobileNetV2"
-
-    mm = ModelMaker(image_size)
     mm.run(pre_model, pre_model_name, epochs)
 
     # Setup model 4: Xception
     pre_model = Xception(weights="imagenet", include_top=False, input_shape=image_size + (3,))
     pre_model_name = "Xception"
-
-    mm = ModelMaker(image_size)
     mm.run(pre_model, pre_model_name, epochs)
 
     # Setup model 5: NASNetLarge
     pre_model = NASNetLarge(weights="imagenet", include_top=False, input_shape=image_size + (3,))
     pre_model_name = "NASNetLarge"
-
-    mm = ModelMaker(image_size)
     mm.run(pre_model, pre_model_name, epochs)
