@@ -137,8 +137,14 @@ class ModelMaker:
         recall = history.history['accuracy']
         f1 = history.history['accuracy']
 
+        # TODO save these as well?
+        false_negatives = history.history['false_negatives']
+        false_positives = history.history['false_positives']
+        true_positives = history.history['true_positives']
+        true_negatives = history.history['true_negatives']
+
         self.print_results(accuracy, precision, recall, f1)
-        self.save_results("History", confusion_matrix, accuracy, precision, recall, f1)
+        self.save_results("History_", accuracy, precision, recall, f1)
         self.plot_results("Accuracy", "Accuracy", accuracy)
         self.plot_results("Precision", "Precision", precision)
         self.plot_results("Recall", "Recall", recall)
@@ -152,7 +158,7 @@ class ModelMaker:
         f12 = f1_score(labels, predictions)
 
         self.print_results(accuracy2, precision2, recall2, f12)
-        self.save_results("Calculated", confusion_matrix, accuracy2, precision2, recall2, f12)
+        self.save_results("Calculated_", accuracy2, precision2, recall2, f12)
 
     def print_results(self, accuracy, precision, recall, f1):
         """ Print the resulting confusion matrix
@@ -172,26 +178,29 @@ class ModelMaker:
         print("F1 Score: ", str(f1))
 
     @staticmethod
-    def generate_filename(base_string):
+    def generate_filename(base_string, ext):
         """ Generate a unique file name by incrementing the number at the end of the file
         Scans the output directory to see what the highest number is and increments by one
         If the directory 'output' doesn't exist in the local path, then it is created
 
         :param base_string: Base string at prepend to the output string
+        :param ext: Extension of the file to create
         :return: The unique filename string
         """
         numbers = []
         if not os.path.exists('output'):
             os.makedirs('output')
 
+        # TODO handle different length extensions
+        # len_ext = len(ext) + 1
         for file in os.scandir('output'):
             if file.name.startswith(base_string):
                 numbers.append(int(file.name[len(base_string):-4]))
 
         if len(numbers) > 0:
-            filename = base_string + str(max(numbers) + 1) + '.png'
+            filename = 'output/' + base_string + str(max(numbers) + 1) + '.' + ext
         else:
-            filename = base_string + '1.png'
+            filename = 'output/' + base_string + '1.' + ext
 
         return filename
 
@@ -205,33 +214,32 @@ class ModelMaker:
         :param plot_data: List of the data to plot ie. [accuracy_values, ...]
         :return: None
         """
-        filename = self.generate_filename(title)
+        filename = self.generate_filename(title + '_', 'png')
         plt.title(title)
         plt.xlabel("Epochs")
         plt.ylabel(y_label)
         plt.plot(self.epochs, plot_data)
         plt.savefig(filename)
 
-    def save_results(self, base_filename, confusion_matrix, accuracy, precision, recall, f1):
+    def save_results(self, base_filename, accuracy, precision, recall, f1):
         """ Save the results to file
 
         :param base_filename: Name to include in the filename to signify differences
-        :param confusion_matrix: The confusion matrix
         :param accuracy: The accuracy
         :param precision: The precision
         :param recall: The recall
         :param f1: The F1 score
         :return: None
         """
-        filename = self.generate_filename(base_filename)
+        filename = self.generate_filename(base_filename, 'txt')
         with open(filename, 'w') as f:
             f.write("Results")
-            f.write("Accuracy: " + str(accuracy))
-            f.write("Precision: " + str(precision))
-            f.write("Recall: " + str(recall))
-            f.write("F1 Score: " + str(f1))
-            f.write("Confusion Matrix: ")
-            f.write(confusion_matrix)
+            f.write("\nAccuracy: " + str(accuracy))
+            f.write("\nPrecision: " + str(precision))
+            f.write("\nRecall: " + str(recall))
+            f.write("\nF1 Score: " + str(f1))
+            f.write("\nConfusion Matrix: \n")
+            f.write(str(self.conf_matrix))
 
     def run(self, model, model_name, num_epochs):
         """ Run the whole program
