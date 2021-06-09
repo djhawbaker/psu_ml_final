@@ -15,7 +15,7 @@ import os
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers, models
-from tensorflow.keras.applications import InceptionResNetV2
+from tensorflow.keras.applications import InceptionResNetV2, VGG16, MobileNetV2, Xception, NASNetLarge
 from matplotlib import pyplot as plt
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
 """
@@ -137,18 +137,22 @@ class ModelMaker:
         recall = history.history['accuracy']
         f1 = history.history['accuracy']
 
-        # TODO save these as well?
         false_negatives = history.history['false_negatives']
         false_positives = history.history['false_positives']
         true_positives = history.history['true_positives']
         true_negatives = history.history['true_negatives']
 
         self.print_results(accuracy, precision, recall, f1)
-        self.save_results("History_", accuracy, precision, recall, f1)
+        self.save_results("History_", accuracy, precision, recall, f1,
+                          false_negatives, false_positives, true_negatives, true_positives)
         self.plot_results("Accuracy", "Accuracy", accuracy)
         self.plot_results("Precision", "Precision", precision)
         self.plot_results("Recall", "Recall", recall)
-        self.plot_results("F1 Score", "F1 Score", f1)
+        self.plot_results("F1_Score", "F1 Score", f1)
+        self.plot_results("False_Negatives", "False Negatives", false_negatives)
+        self.plot_results("False_Positives", "False Positives", false_positives)
+        self.plot_results("True_Positives", "True Positives", true_positives)
+        self.plot_results("True_Negatives", "True Negatives", true_negatives)
 
         # Calculated Final results
         print("Calculated Final results")
@@ -218,10 +222,11 @@ class ModelMaker:
         plt.title(title)
         plt.xlabel("Epochs")
         plt.ylabel(y_label)
-        plt.plot(self.epochs, plot_data)
+        plt.plot(range(self.epochs), plot_data)
         plt.savefig(filename)
 
-    def save_results(self, base_filename, accuracy, precision, recall, f1):
+    def save_results(self, base_filename, accuracy, precision, recall, f1, false_negatives=None, false_positives=None,
+                     true_negatives=None, true_positives=None):
         """ Save the results to file
 
         :param base_filename: Name to include in the filename to signify differences
@@ -229,6 +234,10 @@ class ModelMaker:
         :param precision: The precision
         :param recall: The recall
         :param f1: The F1 score
+        :param false_negatives: The false negatives
+        :param false_positives: The false positives
+        :param true_negatives: The true negatives
+        :param true_positives: The true positives
         :return: None
         """
         filename = self.generate_filename(base_filename, 'txt')
@@ -238,6 +247,16 @@ class ModelMaker:
             f.write("\nPrecision: " + str(precision))
             f.write("\nRecall: " + str(recall))
             f.write("\nF1 Score: " + str(f1))
+
+            if false_negatives:
+                f.write("\nFalse negatives: " + str(false_negatives))
+            if false_positives:
+                f.write("\nFalse positives: " + str(false_positives))
+            if true_negatives:
+                f.write("\nTrue negatives: " + str(true_negatives))
+            if true_positives:
+                f.write("\nTrue positives: " + str(true_positives))
+
             f.write("\nConfusion Matrix: \n")
             f.write(str(self.conf_matrix))
 
@@ -260,9 +279,37 @@ if __name__ == "__main__":
     epochs = 10
     image_size = (299, 299)
 
-    # Setup model 1: InveptionResNetV2
+    # Setup model 1: InceptionResNetV2
     pre_model = InceptionResNetV2(weights="imagenet", include_top=False, input_shape=image_size + (3,))
-    pre_model_name = "imagenet"
+    pre_model_name = "InceptionResNetV2"
+
+    mm = ModelMaker(image_size)
+    mm.run(pre_model, pre_model_name, epochs)
+
+    # Setup model 2: VGG16
+    pre_model = VGG16(weights="imagenet", include_top=False, input_shape=image_size + (3,))
+    pre_model_name = "VGG16"
+
+    mm = ModelMaker(image_size)
+    mm.run(pre_model, pre_model_name, epochs)
+
+    # Setup model 3: MobileNetV2
+    pre_model = MobileNetV2(weights="imagenet", include_top=False, input_shape=image_size + (3,))
+    pre_model_name = "MobileNetV2"
+
+    mm = ModelMaker(image_size)
+    mm.run(pre_model, pre_model_name, epochs)
+
+    # Setup model 4: Xception
+    pre_model = Xception(weights="imagenet", include_top=False, input_shape=image_size + (3,))
+    pre_model_name = "Xception"
+
+    mm = ModelMaker(image_size)
+    mm.run(pre_model, pre_model_name, epochs)
+
+    # Setup model 5: NASNetLarge
+    pre_model = NASNetLarge(weights="imagenet", include_top=False, input_shape=image_size + (3,))
+    pre_model_name = "NASNetLarge"
 
     mm = ModelMaker(image_size)
     mm.run(pre_model, pre_model_name, epochs)
