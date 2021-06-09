@@ -56,6 +56,7 @@ class ModelMaker:
         self.tester = testgen.flow_from_directory('./data/test', class_mode="binary", classes=['COVID19', 'NORMAL'],
                                                   shuffle=False, batch_size=8, target_size=image_size)
 
+        self.epochs = 1
         self.name = None
         self.model = None
         self.predictions = None
@@ -107,6 +108,7 @@ class ModelMaker:
         :param epochs: How many epochs to run
         :return: None
         """
+        self.epochs = epochs
         history = self.model.fit(self.trainer, validation_data=self.validator, epochs=epochs, shuffle=False)#, callbacks=self.callbacks)
         print(f"Model 1: InceptionResNetV2: {history}")
 
@@ -136,7 +138,11 @@ class ModelMaker:
         f1 = history.history['accuracy']
 
         self.print_results(accuracy, precision, recall, f1)
-        self.save_results("History", accuracy, precision, recall, f1)
+        self.save_results("History", confusion_matrix, accuracy, precision, recall, f1)
+        self.plot_results("Accuracy", "Accuracy", accuracy)
+        self.plot_results("Precision", "Precision", precision)
+        self.plot_results("Recall", "Recall", recall)
+        self.plot_results("F1 Score", "F1 Score", f1)
 
         # Calculated Final results
         print("Calculated Final results")
@@ -146,7 +152,7 @@ class ModelMaker:
         f12 = f1_score(labels, predictions)
 
         self.print_results(accuracy2, precision2, recall2, f12)
-        self.save_results("Calculated", accuracy2, precision2, recall2, f12)
+        self.save_results("Calculated", confusion_matrix, accuracy2, precision2, recall2, f12)
 
     def print_results(self, accuracy, precision, recall, f1):
         """ Print the resulting confusion matrix
@@ -164,18 +170,6 @@ class ModelMaker:
         print("Precision: ", str(precision))
         print("Recall: ", str(recall))
         print("F1 Score: ", str(f1))
-
-    def plot_results(self, base_filename, plot_data):
-        """ Plot the results from throughout the training.
-        Saves to file
-        Call separately for each variable being plotted
-
-        :param base_filename: String of what is being plotted
-        :param plot_data: List of the data to plot ie. [accuracy_values, ...]
-        :return: None
-        """
-        # TODO
-        pass
 
     @staticmethod
     def generate_filename(base_string):
@@ -201,18 +195,43 @@ class ModelMaker:
 
         return filename
 
-    def save_results(self, base_filename, accuracy, precision, recall, f1):
+    def plot_results(self, title, y_label, plot_data):
+        """ Plot the results from throughout the training.
+        Saves to file
+        Call separately for each variable being plotted
+
+        :param title: String of what is being plotted
+        :param y_label: String of what should be on the vertical axis (may be the same as the title)
+        :param plot_data: List of the data to plot ie. [accuracy_values, ...]
+        :return: None
+        """
+        filename = self.generate_filename(title)
+        plt.title(title)
+        plt.xlabel("Epochs")
+        plt.ylabel(y_label)
+        plt.plot(self.epochs, plot_data)
+        plt.savefig(filename)
+
+    def save_results(self, base_filename, confusion_matrix, accuracy, precision, recall, f1):
         """ Save the results to file
 
         :param base_filename: Name to include in the filename to signify differences
+        :param confusion_matrix: The confusion matrix
         :param accuracy: The accuracy
         :param precision: The precision
         :param recall: The recall
         :param f1: The F1 score
         :return: None
         """
-        # TODO
         filename = self.generate_filename(base_filename)
+        with open(filename, 'w') as f:
+            f.write("Results")
+            f.write("Accuracy: " + str(accuracy))
+            f.write("Precision: " + str(precision))
+            f.write("Recall: " + str(recall))
+            f.write("F1 Score: " + str(f1))
+            f.write("Confusion Matrix: ")
+            f.write(confusion_matrix)
 
     def run(self, model, model_name, num_epochs):
         """ Run the whole program
