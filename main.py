@@ -46,16 +46,16 @@ class ModelMaker:
         testgen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1. / 255)
 
         self.trainer = traingen.flow_from_directory('./data/train', class_mode="binary", classes=['COVID19', 'NORMAL'],
-                                                    shuffle=False, batch_size=8, target_size=image_size,
+                                                    batch_size=8, target_size=image_size,
                                                     subset="training")
 
         self.validator = testgen.flow_from_directory('./data/train', class_mode="binary",
                                                      classes=['COVID19', 'NORMAL'],
-                                                     shuffle=False, batch_size=8, target_size=image_size,
+                                                     batch_size=8, target_size=image_size,
                                                      subset="validation")
 
         self.tester = testgen.flow_from_directory('./data/test', class_mode="binary", classes=['COVID19', 'NORMAL'],
-                                                  shuffle=False, batch_size=8, target_size=image_size)
+                                                  batch_size=8, target_size=image_size)
 
         self.epochs = 1
         self.name = None
@@ -112,7 +112,7 @@ class ModelMaker:
 
     def create_metric_functions(self):
         self.metrics_functions = [
-            tf.keras.metrics.Accuracy(name='accuracy'),
+            tf.keras.metrics.BinaryAccuracy(name='accuracy'),
             tf.keras.metrics.Precision(name='precision'),
             tf.keras.metrics.Recall(name='recall'),
             tf.keras.metrics.FalseNegatives(name='false_negatives'),
@@ -128,7 +128,8 @@ class ModelMaker:
         :return: None
         """
         self.epochs = epochs
-        history = self.model.fit(self.trainer, validation_data=self.validator, epochs=epochs, shuffle=False)#, callbacks=self.callbacks)
+        history = self.model.fit(self.trainer, validation_data=self.validator, epochs=epochs, shuffle=False,
+                                 callbacks=self.callbacks)
         print(f"Model: {self.name}: {history}")
 
         """
@@ -319,7 +320,7 @@ class ModelMaker:
 
 
 if __name__ == "__main__":
-    epochs = 50
+    epochs = 10
 
     # Setup model 1: InceptionResNetV2
     image_size = (299, 299)
