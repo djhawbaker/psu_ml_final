@@ -16,6 +16,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.applications import InceptionResNetV2, VGG16, MobileNetV2, Xception, NASNetLarge
+#from tensorflow.keras.Metric import reset_state
 from matplotlib import pyplot as plt
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
 """
@@ -93,6 +94,9 @@ class ModelMaker:
         self.conf_matrix = None
         self.metrics_functions = None
 
+        #tf.keras.metrics.Recall.reset_state()
+
+
     def create_model(self, pre_model):
         """ Transfers the input model and creates a new classifier
 
@@ -104,7 +108,7 @@ class ModelMaker:
         self.model.add(pre_model)
         self.model.add(layers.Flatten())
         self.model.add(layers.Dense(256, activation='relu'))
-        self.model.add(layers.Dense(1, activation='sigmoid'))
+        self.model.add(layers.Dense(1, activation='softmax'))
         pre_model.trainable = False
 
         opt = tf.keras.optimizers.Adam(learning_rate=0.01)
@@ -122,13 +126,13 @@ class ModelMaker:
 
     def create_metric_functions(self):
         self.metrics_functions = [
-            tf.keras.metrics.Accuracy(),
-            tf.keras.metrics.Precision(),
-            tf.keras.metrics.Recall(),
-            tf.keras.metrics.FalseNegatives(),
-            tf.keras.metrics.FalsePositives(),
-            tf.keras.metrics.TruePositives(),
-            tf.keras.metrics.TrueNegatives()
+            tf.keras.metrics.Accuracy(name='accuracy'),
+            tf.keras.metrics.Precision(name='precision'),
+            tf.keras.metrics.Recall(name='recall'),
+            tf.keras.metrics.FalseNegatives(name='false_negatives'),
+            tf.keras.metrics.FalsePositives(name='false_positives'),
+            tf.keras.metrics.TruePositives(name='true_positives'),
+            tf.keras.metrics.TrueNegatives(name='true_negatives')
         ]
 
     def train(self, epochs):
@@ -138,8 +142,7 @@ class ModelMaker:
         :return: None
         """
         self.epochs = epochs
-        history = self.model.fit(self.trainer, validation_data=self.validator, epochs=epochs, shuffle=False,
-                                 callbacks=self.callbacks)
+        history = self.model.fit(self.trainer, validation_data=self.validator, epochs=epochs, shuffle=False)#, callbacks=self.callbacks)
         print(f"Model: " + self.name + f": {history}")
 
         """
@@ -163,28 +166,28 @@ class ModelMaker:
 
         # From history
         accuracy = history.history['accuracy']
-        precision = history.history['accuracy']
-        recall = history.history['accuracy']
-        f1 = history.history['accuracy']
+        precision = history.history['precision']
+        recall = history.history['recall']
+        #f1 = history.history['f1']
 
         false_negatives = history.history['false_negatives']
         false_positives = history.history['false_positives']
         true_positives = history.history['true_positives']
         true_negatives = history.history['true_negatives']
 
-        self.print_results(accuracy, precision, recall, f1)
-        self.save_results("History_", accuracy, precision, recall, f1,
+        self.print_results(accuracy, precision, recall)
+        self.save_results("History_", accuracy, precision, recall,
                           false_negatives, false_positives, true_negatives, true_positives)
         self.plot_results("Accuracy", "Accuracy", accuracy)
         self.plot_results("Precision", "Precision", precision)
         self.plot_results("Recall", "Recall", recall)
-        self.plot_results("F1_Score", "F1 Score", f1)
+        #self.plot_results("F1_Score", "F1 Score", f1)
         self.plot_results("False_Negatives", "False Negatives", false_negatives)
         self.plot_results("False_Positives", "False Positives", false_positives)
         self.plot_results("True_Positives", "True Positives", true_positives)
         self.plot_results("True_Negatives", "True Negatives", true_negatives)
 
-        # Calculated Final results
+        # Calculated Final averaged? results
         print("Calculated Final results")
         accuracy2 = accuracy_score(labels, predictions)
         precision2 = precision_score(labels, predictions)
@@ -194,7 +197,7 @@ class ModelMaker:
         self.print_results(accuracy2, precision2, recall2, f12)
         self.save_results("Calculated_", accuracy2, precision2, recall2, f12)
 
-    def print_results(self, accuracy, precision, recall, f1):
+    def print_results(self, accuracy, precision, recall, f1=None):
         """ Print the resulting confusion matrix
 
         :param accuracy:
@@ -209,7 +212,8 @@ class ModelMaker:
         print("Accuracy: ", str(accuracy))
         print("Precision: ", str(precision))
         print("Recall: ", str(recall))
-        print("F1 Score: ", str(f1))
+        if f1:
+            print("F1 Score: ", str(f1))
 
     @staticmethod
     def generate_filename(base_string, ext):
@@ -256,7 +260,7 @@ class ModelMaker:
         #plt.plot(range(len(plot_data)), plot_data)
         plt.savefig(filename)
 
-    def save_results(self, base_filename, accuracy, precision, recall, f1, false_negatives=None, false_positives=None,
+    def save_results(self, base_filename, accuracy, precision, recall, f1=None, false_negatives=None, false_positives=None,
                      true_negatives=None, true_positives=None):
         """ Save the results to file
 
@@ -277,8 +281,9 @@ class ModelMaker:
             f.write("\nAccuracy: " + str(accuracy))
             f.write("\nPrecision: " + str(precision))
             f.write("\nRecall: " + str(recall))
-            f.write("\nF1 Score: " + str(f1))
 
+            if f1:
+                f.write("\nF1 Score: " + str(f1))
             if false_negatives:
                 f.write("\nFalse negatives: " + str(false_negatives))
             if false_positives:
@@ -308,7 +313,7 @@ class ModelMaker:
 
 
 if __name__ == "__main__":
-    epochs = 50
+    epochs = 2
 
     # Setup model 1: InceptionResNetV2
     image_size = (299, 299)
@@ -317,7 +322,6 @@ if __name__ == "__main__":
     pre_model_name = "InceptionResNetV2"
     mm.run(pre_model, pre_model_name, epochs)
 
-    """
     # Setup model 2: VGG16
     # TODO this model asserts
     image_size = (224, 224)
@@ -325,7 +329,6 @@ if __name__ == "__main__":
     pre_model = VGG16(weights="imagenet", include_top=False, input_shape=image_size + (3,))
     pre_model_name = "VGG16"
     mm.run(pre_model, pre_model_name, epochs)
-    """
 
     # Setup model 3: MobileNetV2
     image_size = (224, 224)
