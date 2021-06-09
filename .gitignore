@@ -1,0 +1,9 @@
+#Git ignore
+#Ignore the virtual environment. Can create a requirements.txt to save
+venv/
+*.pyc
+*.jpg
+*.png
+.idea
+*.zip
+output/
