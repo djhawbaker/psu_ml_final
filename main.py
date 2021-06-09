@@ -38,8 +38,7 @@ class ModelMaker:
     def __init__(self, image_size):
         """ Initialize the ModelMaker class
 
-        :param trainer: The generator for training data
-        :param validator: The generator for validation data
+        :param image_size: Tuple of the input image size
         """
         traingen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1. / 255, rotation_range=25,
                                                                    validation_split=.15)
@@ -109,10 +108,10 @@ class ModelMaker:
         self.model.add(layers.Flatten())
         self.model.add(layers.Dense(256, activation='relu'))
         self.model.add(layers.Dense(1, activation='softmax'))
-        pre_model.trainable = False
+        #pre_model.trainable = False
 
         opt = tf.keras.optimizers.Adam(learning_rate=0.01)
-        self.model.trainable = True
+        #self.model.trainable = True
         self.model.compile(loss='binary_crossentropy', optimizer=opt, metrics=self.metrics_functions)
 
     def create_callbacks(self):
@@ -143,7 +142,7 @@ class ModelMaker:
         """
         self.epochs = epochs
         history = self.model.fit(self.trainer, validation_data=self.validator, epochs=epochs, shuffle=False)#, callbacks=self.callbacks)
-        print(f"Model: " + self.name + f": {history}")
+        print(f"Model: {self.name}: {history}")
 
         """
         eval_loss = self.model.evaluate(self.validator)
@@ -315,18 +314,22 @@ class ModelMaker:
 if __name__ == "__main__":
     epochs = 2
 
+    """
     # Setup model 1: InceptionResNetV2
     image_size = (299, 299)
     mm = ModelMaker(image_size)
     pre_model = InceptionResNetV2(weights="imagenet", include_top=False, input_shape=image_size + (3,))
+    pre_model.trainable = False
     pre_model_name = "InceptionResNetV2"
     mm.run(pre_model, pre_model_name, epochs)
+    """
 
     # Setup model 2: VGG16
     # TODO this model asserts
     image_size = (224, 224)
     mm = ModelMaker(image_size)
     pre_model = VGG16(weights="imagenet", include_top=False, input_shape=image_size + (3,))
+    pre_model.trainable = False
     pre_model_name = "VGG16"
     mm.run(pre_model, pre_model_name, epochs)
 
@@ -334,6 +337,7 @@ if __name__ == "__main__":
     image_size = (224, 224)
     mm = ModelMaker(image_size)
     pre_model = MobileNetV2(weights="imagenet", include_top=False, input_shape=image_size + (3,))
+    pre_model.trainable = False
     pre_model_name = "MobileNetV2"
     mm.run(pre_model, pre_model_name, epochs)
 
@@ -341,6 +345,7 @@ if __name__ == "__main__":
     image_size = (299, 299)
     mm = ModelMaker(image_size)
     pre_model = Xception(weights="imagenet", include_top=False, input_shape=image_size + (3,))
+    pre_model.trainable = False
     pre_model_name = "Xception"
     mm.run(pre_model, pre_model_name, epochs)
 
@@ -348,5 +353,6 @@ if __name__ == "__main__":
     image_size = (331, 331)
     mm = ModelMaker(image_size)
     pre_model = NASNetLarge(weights="imagenet", include_top=False, input_shape=image_size + (3,))
+    pre_model.trainable = False
     pre_model_name = "NASNetLarge"
     mm.run(pre_model, pre_model_name, epochs)
