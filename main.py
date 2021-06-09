@@ -69,6 +69,23 @@ class ModelMaker:
 
         :return:
         """
+        traingen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1. / 255, rotation_range=25,
+                                                                   validation_split=.15)
+        testgen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1. / 255)
+
+        self.trainer = traingen.flow_from_directory('./data/train', class_mode="binary", classes=['COVID19', 'NORMAL'],
+                                                    shuffle=False, batch_size=8, target_size=image_size,
+                                                    subset="training")
+
+        self.validator = testgen.flow_from_directory('./data/train', class_mode="binary",
+                                                     classes=['COVID19', 'NORMAL'],
+                                                     shuffle=False, batch_size=8, target_size=image_size,
+                                                     subset="validation")
+
+        self.tester = testgen.flow_from_directory('./data/test', class_mode="binary", classes=['COVID19', 'NORMAL'],
+                                                  shuffle=False, batch_size=8, target_size=image_size)
+        self.epochs = 1
+        self.name = None
         self.name = None
         self.model = None
         self.predictions = None
@@ -123,7 +140,7 @@ class ModelMaker:
         self.epochs = epochs
         history = self.model.fit(self.trainer, validation_data=self.validator, epochs=epochs, shuffle=False,
                                  callbacks=self.callbacks)
-        print(f"Model 1: InceptionResNetV2: {history}")
+        print(f"Model: " + self.name + f": {history}")
 
         """
         eval_loss = self.model.evaluate(self.validator)
@@ -186,7 +203,7 @@ class ModelMaker:
         :param f1:
         :return: None
         """
-        print("Model 1: InceptionResNetV2 Confusion Matrix")
+        print("Model: " + self.name + " Confusion Matrix")
         print(self.conf_matrix)
 
         print("Accuracy: ", str(accuracy))
@@ -231,11 +248,12 @@ class ModelMaker:
         :param plot_data: List of the data to plot ie. [accuracy_values, ...]
         :return: None
         """
-        filename = self.generate_filename(title + '_', 'png')
+        filename = self.generate_filename(self.name + '_' + title + '_', 'png')
         plt.title(title)
         plt.xlabel("Epochs")
         plt.ylabel(y_label)
-        plt.plot(range(self.epochs), plot_data)
+        plt.plot(plot_data)
+        #plt.plot(range(len(plot_data)), plot_data)
         plt.savefig(filename)
 
     def save_results(self, base_filename, accuracy, precision, recall, f1, false_negatives=None, false_positives=None,
@@ -253,7 +271,7 @@ class ModelMaker:
         :param true_positives: The true positives
         :return: None
         """
-        filename = self.generate_filename(base_filename, 'txt')
+        filename = self.generate_filename(self.name + '_' + base_filename, 'txt')
         with open(filename, 'w') as f:
             f.write("Results")
             f.write("\nAccuracy: " + str(accuracy))
@@ -291,31 +309,41 @@ class ModelMaker:
 
 if __name__ == "__main__":
     epochs = 50
-    image_size = (400, 400)
-
-    mm = ModelMaker(image_size)
 
     # Setup model 1: InceptionResNetV2
+    image_size = (299, 299)
+    mm = ModelMaker(image_size)
     pre_model = InceptionResNetV2(weights="imagenet", include_top=False, input_shape=image_size + (3,))
     pre_model_name = "InceptionResNetV2"
     mm.run(pre_model, pre_model_name, epochs)
 
+    """
     # Setup model 2: VGG16
+    # TODO this model asserts
+    image_size = (224, 224)
+    mm = ModelMaker(image_size)
     pre_model = VGG16(weights="imagenet", include_top=False, input_shape=image_size + (3,))
     pre_model_name = "VGG16"
     mm.run(pre_model, pre_model_name, epochs)
+    """
 
     # Setup model 3: MobileNetV2
+    image_size = (224, 224)
+    mm = ModelMaker(image_size)
     pre_model = MobileNetV2(weights="imagenet", include_top=False, input_shape=image_size + (3,))
     pre_model_name = "MobileNetV2"
     mm.run(pre_model, pre_model_name, epochs)
 
     # Setup model 4: Xception
+    image_size = (299, 299)
+    mm = ModelMaker(image_size)
     pre_model = Xception(weights="imagenet", include_top=False, input_shape=image_size + (3,))
     pre_model_name = "Xception"
     mm.run(pre_model, pre_model_name, epochs)
 
     # Setup model 5: NASNetLarge
+    image_size = (331, 331)
+    mm = ModelMaker(image_size)
     pre_model = NASNetLarge(weights="imagenet", include_top=False, input_shape=image_size + (3,))
     pre_model_name = "NASNetLarge"
     mm.run(pre_model, pre_model_name, epochs)
