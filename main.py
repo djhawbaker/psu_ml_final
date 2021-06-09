@@ -11,12 +11,13 @@ Sensitivity - Same as recall-> Has disease
 Specificity - TrueNegative / (TrueNegative + FalsePositive) -> Doesn't have disease
 """
 
+import time
 import os
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.applications import InceptionResNetV2, VGG16, MobileNetV2, Xception, NASNetLarge
-#from tensorflow.keras.Metric import reset_state
+# from tensorflow.keras.Metric import reset_state
 from matplotlib import pyplot as plt
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
 """
@@ -49,41 +50,27 @@ class ModelMaker:
                                                     subset="training")
 
         self.validator = testgen.flow_from_directory('./data/train', class_mode="binary",
-                                                      classes=['COVID19', 'NORMAL'],
-                                                      shuffle=False, batch_size=8, target_size=image_size,
-                                                      subset="validation")
-
-        self.tester = testgen.flow_from_directory('./data/test', class_mode="binary", classes=['COVID19', 'NORMAL'],
-                                                  shuffle=False, batch_size=8, target_size=image_size)
-
-        self.epochs = 1
-        self.name = None
-        self.model = None
-        self.predictions = None
-        self.callbacks = None
-        self.conf_matrix = None
-        self.metrics_functions = None
-
-    def reset_member_variables(self):
-        """ Resets the member variables so a new model can be run without issues
-
-        :return:
-        """
-        traingen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1. / 255, rotation_range=25,
-                                                                   validation_split=.15)
-        testgen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1. / 255)
-
-        self.trainer = traingen.flow_from_directory('./data/train', class_mode="binary", classes=['COVID19', 'NORMAL'],
-                                                    shuffle=False, batch_size=8, target_size=image_size,
-                                                    subset="training")
-
-        self.validator = testgen.flow_from_directory('./data/train', class_mode="binary",
                                                      classes=['COVID19', 'NORMAL'],
                                                      shuffle=False, batch_size=8, target_size=image_size,
                                                      subset="validation")
 
         self.tester = testgen.flow_from_directory('./data/test', class_mode="binary", classes=['COVID19', 'NORMAL'],
                                                   shuffle=False, batch_size=8, target_size=image_size)
+
+        self.epochs = 1
+        self.name = None
+        self.model = None
+        self.predictions = None
+        self.callbacks = None
+        self.conf_matrix = None
+        self.metrics_functions = None
+        self.start = 0
+
+    def reset_member_variables(self):
+        """ Resets the member variables so a new model can be run without issues
+
+        :return:
+        """
         self.epochs = 1
         self.name = None
         self.name = None
@@ -92,8 +79,9 @@ class ModelMaker:
         self.callbacks = None
         self.conf_matrix = None
         self.metrics_functions = None
+        self.start = 0
 
-        #tf.keras.metrics.Recall.reset_state()
+        # tf.keras.metrics.Recall.reset_state()
 
 
     def create_model(self, pre_model):
@@ -107,11 +95,10 @@ class ModelMaker:
         self.model.add(pre_model)
         self.model.add(layers.Flatten())
         self.model.add(layers.Dense(256, activation='relu'))
-        self.model.add(layers.Dense(1, activation='softmax'))
-        #pre_model.trainable = False
+        self.model.add(layers.Dropout(0.3))
+        self.model.add(layers.Dense(1, activation='sigmoid'))
 
         opt = tf.keras.optimizers.Adam(learning_rate=0.01)
-        #self.model.trainable = True
         self.model.compile(loss='binary_crossentropy', optimizer=opt, metrics=self.metrics_functions)
 
     def create_callbacks(self):
@@ -161,26 +148,26 @@ class ModelMaker:
         self.results(self.tester.classes, predictions, history)
 
     def results(self, labels, predictions, history):
+        elapsed_time = time.time() - self.start
+        print("ETIME: ", elapsed_time)
         self.conf_matrix = confusion_matrix(labels, predictions)
 
         # From history
         accuracy = history.history['accuracy']
         precision = history.history['precision']
         recall = history.history['recall']
-        #f1 = history.history['f1']
 
         false_negatives = history.history['false_negatives']
         false_positives = history.history['false_positives']
         true_positives = history.history['true_positives']
         true_negatives = history.history['true_negatives']
 
-        self.print_results(accuracy, precision, recall)
-        self.save_results("History_", accuracy, precision, recall,
+        self.print_results(accuracy, precision, recall, elapsed_time)
+        self.save_results("History_", elapsed_time, accuracy, precision, recall,
                           false_negatives, false_positives, true_negatives, true_positives)
         self.plot_results("Accuracy", "Accuracy", accuracy)
         self.plot_results("Precision", "Precision", precision)
         self.plot_results("Recall", "Recall", recall)
-        #self.plot_results("F1_Score", "F1 Score", f1)
         self.plot_results("False_Negatives", "False Negatives", false_negatives)
         self.plot_results("False_Positives", "False Positives", false_positives)
         self.plot_results("True_Positives", "True Positives", true_positives)
@@ -193,21 +180,30 @@ class ModelMaker:
         recall2 = recall_score(labels, predictions)
         f12 = f1_score(labels, predictions)
 
-        self.print_results(accuracy2, precision2, recall2, f12)
-        self.save_results("Calculated_", accuracy2, precision2, recall2, f12)
+        self.print_results(accuracy2, precision2, recall2, f12, elapsed_time)
+        self.save_results("Calculated_", elapsed_time, accuracy2, precision2, recall2, f12)
 
-    def print_results(self, accuracy, precision, recall, f1=None):
+    def print_results(self, accuracy, precision, recall, elapsed_time, f1=None):
         """ Print the resulting confusion matrix
 
         :param accuracy:
         :param precision:
         :param recall:
+        :param elapsed_time:
         :param f1:
         :return: None
         """
         print("Model: " + self.name + " Confusion Matrix")
         print(self.conf_matrix)
 
+        hours = int(elapsed_time // 3600 % 24)
+        minutes = int(elapsed_time // 60 % 60)
+        seconds = int(elapsed_time % 60)
+
+        print("Start time: " + str(self.start_time))
+        print("End time: " + time.strftime("%H:%M:%S"))
+        print("Elapsed time in seconds: ", str(elapsed_time))
+        print("Elapsed time: " + str(hours) + ":" + str(minutes) + ":" + str(seconds))
         print("Accuracy: ", str(accuracy))
         print("Precision: ", str(precision))
         print("Recall: ", str(recall))
@@ -259,11 +255,12 @@ class ModelMaker:
         #plt.plot(range(len(plot_data)), plot_data)
         plt.savefig(filename)
 
-    def save_results(self, base_filename, accuracy, precision, recall, f1=None, false_negatives=None, false_positives=None,
-                     true_negatives=None, true_positives=None):
+    def save_results(self, base_filename, elapsed_time, accuracy, precision, recall, f1=None, false_negatives=None,
+                     false_positives=None, true_negatives=None, true_positives=None):
         """ Save the results to file
 
         :param base_filename: Name to include in the filename to signify differences
+        :param elapsed_time: The amount of time it took to run the model
         :param accuracy: The accuracy
         :param precision: The precision
         :param recall: The recall
@@ -275,8 +272,16 @@ class ModelMaker:
         :return: None
         """
         filename = self.generate_filename(self.name + '_' + base_filename, 'txt')
+
+        hours = int(elapsed_time // 3600 % 24)
+        minutes = int(elapsed_time // 60 % 60)
+        seconds = int(elapsed_time % 60)
         with open(filename, 'w') as f:
             f.write("Results")
+            f.write("Start time: " + self.start_time)
+            f.write("End time: " + str(time.strftime("%H:%M:%S")))
+            f.write("\nElapsed time in seconds: " + str(elapsed_time))
+            f.write("\nElapsed time: " + str(hours) + ":" + str(minutes) + ":" + str(seconds))
             f.write("\nAccuracy: " + str(accuracy))
             f.write("\nPrecision: " + str(precision))
             f.write("\nRecall: " + str(recall))
@@ -304,6 +309,8 @@ class ModelMaker:
         :return: None
         """
         self.reset_member_variables()
+        self.start = time.time()
+        self.start_time = time.strftime("%H:%M:%S")
         self.name = model_name
         self.create_metric_functions()
         self.create_model(model)
@@ -312,9 +319,8 @@ class ModelMaker:
 
 
 if __name__ == "__main__":
-    epochs = 2
+    epochs = 50
 
-    """
     # Setup model 1: InceptionResNetV2
     image_size = (299, 299)
     mm = ModelMaker(image_size)
@@ -322,10 +328,8 @@ if __name__ == "__main__":
     pre_model.trainable = False
     pre_model_name = "InceptionResNetV2"
     mm.run(pre_model, pre_model_name, epochs)
-    """
 
     # Setup model 2: VGG16
-    # TODO this model asserts
     image_size = (224, 224)
     mm = ModelMaker(image_size)
     pre_model = VGG16(weights="imagenet", include_top=False, input_shape=image_size + (3,))
