@@ -55,6 +55,7 @@ class ModelMaker:
         self.conf_matrix = None
         self.metrics_functions = None
         self.start = 0
+        self.start_time = ""
 
     def reset_member_variables(self):
         """ Resets the member variables so a new model can be run without issues
@@ -133,6 +134,7 @@ class ModelMaker:
         self.conf_matrix = confusion_matrix(labels, predictions)
 
         # From history
+        loss = history.history['loss']
         accuracy = history.history['accuracy']
         precision = history.history['precision']
         recall = history.history['recall']
@@ -142,9 +144,20 @@ class ModelMaker:
         true_positives = history.history['true_positives']
         true_negatives = history.history['true_negatives']
 
+        val_loss = history.history['val_loss']
+        val_accuracy = history.history['val_accuracy']
+        val_precision = history.history['val_precision']
+        val_recall = history.history['val_recall']
+        val_false_negatives = history.history['val_false_negatives']
+        val_false_positives = history.history['val_false_positives']
+        val_true_positives = history.history['val_true_positives']
+        val_true_negatives = history.history['val_true_negatives']
+
         self.print_results(accuracy, precision, recall, elapsed_time)
-        self.save_results("History_", elapsed_time, accuracy, precision, recall,
-                          false_negatives, false_positives, true_negatives, true_positives)
+        self.save_results("History_", elapsed_time, accuracy, precision, recall, loss,
+                          false_negatives, false_positives, true_negatives, true_positives,
+                          val_loss, val_accuracy, val_precision, val_recall,
+                          val_false_negatives, val_false_positives, val_true_negatives, val_true_positives)
         self.plot_results("Accuracy", "Accuracy", accuracy)
         self.plot_results("Precision", "Precision", precision)
         self.plot_results("Recall", "Recall", recall)
@@ -160,8 +173,8 @@ class ModelMaker:
         recall2 = recall_score(labels, predictions)
         f12 = f1_score(labels, predictions)
 
-        self.print_results(accuracy2, precision2, recall2, f12, elapsed_time)
-        self.save_results("Calculated_", elapsed_time, accuracy2, precision2, recall2, f12)
+        self.print_results(accuracy2, precision2, recall2, elapsed_time, f12)
+        self.save_results("Calculated_", elapsed_time, accuracy2, precision2, recall2, loss, f12)
 
     def print_results(self, accuracy, precision, recall, elapsed_time, f1=None):
         """ Print the resulting confusion matrix
@@ -234,8 +247,10 @@ class ModelMaker:
         plt.plot(plot_data)
         plt.savefig(filename)
 
-    def save_results(self, base_filename, elapsed_time, accuracy, precision, recall, f1=None, false_negatives=None,
-                     false_positives=None, true_negatives=None, true_positives=None):
+    def save_results(self, base_filename, elapsed_time, accuracy, precision, recall, loss=None, val_loss=None,
+                     val_accuracy=None, val_precision=None, val_recall=None, val_false_negatives=None,
+                     val_false_positives=None, val_true_negatives=None, val_true_positives=None, f1=None,
+                     false_negatives=None, false_positives=None, true_negatives=None, true_positives=None):
         """ Save the results to file
 
         :param base_filename: Name to include in the filename to signify differences
@@ -261,10 +276,24 @@ class ModelMaker:
             f.write("End time: " + str(time.strftime("%H:%M:%S")))
             f.write("\nElapsed time in seconds: " + str(elapsed_time))
             f.write("\nElapsed time: " + str(hours) + ":" + str(minutes) + ":" + str(seconds))
+            f.write("\nLoss: " + str(loss))
             f.write("\nAccuracy: " + str(accuracy))
             f.write("\nPrecision: " + str(precision))
             f.write("\nRecall: " + str(recall))
 
+            f.write("\nVal Loss: " + str(val_loss))
+            f.write("\nVal Accuracy: " + str(val_accuracy))
+            f.write("\nVal Precision: " + str(val_precision))
+            f.write("\nVal Recall: " + str(val_recall))
+
+            if val_false_negatives:
+                f.write("\nVal False negatives: " + str(val_false_negatives))
+            if val_false_positives:
+                f.write("\nVal False positives: " + str(val_false_positives))
+            if val_true_negatives:
+                f.write("\nVal True negatives: " + str(val_true_negatives))
+            if val_true_positives:
+                f.write("\nVal True positives: " + str(val_true_positives))
             if f1:
                 f.write("\nF1 Score: " + str(f1))
             if false_negatives:
@@ -298,7 +327,7 @@ class ModelMaker:
 
 
 if __name__ == "__main__":
-    epochs = 10
+    epochs = 50
 
     # Setup model 1: InceptionResNetV2
     image_size = (299, 299)
