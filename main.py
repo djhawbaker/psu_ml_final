@@ -41,7 +41,10 @@ class ModelMaker:
 
         :param image_size: Tuple of the input image size
         """
-        traingen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1. / 255, rotation_range=25,
+        traingen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1. / 255,
+                                                                   rotation_range=25,
+                                                                   vertical_flip=True,
+                                                                   horizontal_flip=True,
                                                                    validation_split=.15)
         testgen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1. / 255)
 
@@ -49,7 +52,7 @@ class ModelMaker:
                                                     batch_size=8, target_size=image_size,
                                                     subset="training")
 
-        self.validator = testgen.flow_from_directory('./data/train', class_mode="binary",
+        self.validator = traingen.flow_from_directory('./data/train', class_mode="binary",
                                                      classes=['COVID19', 'NORMAL'],
                                                      batch_size=8, target_size=image_size,
                                                      subset="validation")
