@@ -1,14 +1,13 @@
 """
 ML & CVDL Final Project
+Andrew Ruskamp-White, David Hawbaker, Jason Forral, Michael Kay, Sharon Oba
 
-Test loss and validation loss
-Accuracy - TruePositives + TrueNegative / TruePositive + TrueNegative + FalsePositive + FalseNegative
-Precision - TruePositives / (TruePositives + FalsePositives)
-Recall - TruePositives / (TruePositives + FalseNegatives)
-Processing time
-F1 Score - 2 * ((precision * recall) / (precision + recall))
-Sensitivity - Same as recall-> Has disease
-Specificity - TrueNegative / (TrueNegative + FalsePositive) -> Doesn't have disease
+Models:
+1. InceptionResNetV2: https://keras.io/api/applications/inceptionresnetv2/
+2. VGG16: https://keras.io/api/applications/vgg/#vgg16-function
+3. MobileNetV2: https://keras.io/api/applications/mobilenet/#mobilenetv2-function
+4. Xception: https://keras.io/api/applications/xception/
+5. NASNetLarge: https://keras.io/api/applications/nasnet/#nasnetlarge-function
 """
 
 import time
@@ -17,24 +16,12 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.applications import InceptionResNetV2, VGG16, MobileNetV2, Xception, NASNetLarge
-# from tensorflow.keras.Metric import reset_state
 from matplotlib import pyplot as plt
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
-"""
-Models:
-1. InceptionResNetV2: https://keras.io/api/applications/inceptionresnetv2/
-2. VGG16: https://keras.io/api/applications/vgg/#vgg16-function
-3. MobileNetV2: https://keras.io/api/applications/mobilenet/#mobilenetv2-function
-4. Xception: https://keras.io/api/applications/xception/
-5. NASNetLarge: https://keras.io/api/applications/nasnet/#nasnetlarge-function
-
-"""
 
 
 class ModelMaker:
-    """ Class to handle transferring the model and creating a new one
-
-    """
+    """ Class to handle transferring the model and creating a new one """
 
     def __init__(self, image_size):
         """ Initialize the ModelMaker class
@@ -42,9 +29,9 @@ class ModelMaker:
         :param image_size: Tuple of the input image size
         """
         traingen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1. / 255,
-                                                                   rotation_range=25,
-                                                                   vertical_flip=True,
+                                                                   rotation_range=5,
                                                                    horizontal_flip=True,
+                                                                   zoom_range=0.15,
                                                                    validation_split=.15)
         testgen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1. / 255)
 
@@ -84,9 +71,6 @@ class ModelMaker:
         self.metrics_functions = None
         self.start = 0
 
-        # tf.keras.metrics.Recall.reset_state()
-
-
     def create_model(self, pre_model):
         """ Transfers the input model and creates a new classifier
 
@@ -99,6 +83,7 @@ class ModelMaker:
         self.model.add(layers.Flatten())
         self.model.add(layers.Dense(256, activation='relu'))
         self.model.add(layers.Dropout(0.3))
+        self.model.add(layers.GaussianNoise(0.1))
         self.model.add(layers.Dense(1, activation='sigmoid'))
 
         opt = tf.keras.optimizers.Adam(learning_rate=0.01)
@@ -134,15 +119,6 @@ class ModelMaker:
         history = self.model.fit(self.trainer, validation_data=self.validator, epochs=epochs, shuffle=False,
                                  callbacks=self.callbacks)
         print(f"Model: {self.name}: {history}")
-
-        """
-        eval_loss = self.model.evaluate(self.validator)
-        print(eval_loss)
-
-        self.predictions = np.array([])
-        for x, y in self.validator:
-            self.predictions = np.concatenate([self.predictions, np.argmax(self.model.predict(x), axis=-1)])
-        """
 
         predictions = self.model.predict(x=self.tester, batch_size=32)
         # Making predictions binary based on output for initial confusion matrix
@@ -190,11 +166,11 @@ class ModelMaker:
     def print_results(self, accuracy, precision, recall, elapsed_time, f1=None):
         """ Print the resulting confusion matrix
 
-        :param accuracy:
-        :param precision:
-        :param recall:
-        :param elapsed_time:
-        :param f1:
+        :param accuracy: The accuracy
+        :param precision: The precision
+        :param recall: The recall
+        :param elapsed_time: How long in seconds it took to run
+        :param f1: The F1 score
         :return: None
         """
         print("Model: " + self.name + " Confusion Matrix")
@@ -256,7 +232,6 @@ class ModelMaker:
         plt.xlabel("Epochs")
         plt.ylabel(y_label)
         plt.plot(plot_data)
-        #plt.plot(range(len(plot_data)), plot_data)
         plt.savefig(filename)
 
     def save_results(self, base_filename, elapsed_time, accuracy, precision, recall, f1=None, false_negatives=None,
